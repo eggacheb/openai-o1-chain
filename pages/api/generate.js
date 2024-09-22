@@ -113,7 +113,7 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent) {
   let stepCount = 0;
   let continueReasoning = true;
 
-  while (continueReasoning && stepCount < 10) {
+  while (continueReasoning && stepCount < 15) {
     stepCount++;
 
     const stepData = await processStep(apiKey, model, baseUrl, messages);
@@ -123,12 +123,15 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent) {
 
     messages.push({ role: "assistant", content: JSON.stringify(stepData) });
 
-    if (stepData.next_action === "end" || stepCount >= 10) {
+    // 检查 next_action，如果不是 'continue'，则终止循环
+    if (stepData.next_action === "end" || stepData.next_action !== "continue" || stepCount >= 15) {
       continueReasoning = false;
-    } else if (stepCount < 9) {
-      messages.push({ role: "user", content: "请继续分析。" });
     } else {
-      messages.push({ role: "user", content: "请总结并给出最终结论。" });
+      if (stepCount < 14) {
+        messages.push({ role: "user", content: "请继续分析。" });
+      } else {
+        messages.push({ role: "user", content: "请总结并给出最终结论。" });
+      }
     }
   }
 
