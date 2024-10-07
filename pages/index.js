@@ -52,20 +52,17 @@ const parseResponse = (data) => {
   }
 };
 
-
-
 export default function Home() {
   const [query, setQuery] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState('gpt-4o');
-  const [baseUrl, setBaseUrl] = useState('https://api.openai.com');
+  const [model, setModel] = useState('');
+  const [baseUrl, setBaseUrl] = useState('');
   const [response, setResponse] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [totalTime, setTotalTime] = useState(null);
   const [error, setError] = useState(null);
   const eventSourceRef = useRef(null);
 
-  // 使用 useEffect 来确保这些操作只在客户端执行
   useEffect(() => {
     // 从 localStorage 读取保存的值
     const savedApiKey = localStorage.getItem('apiKey');
@@ -76,17 +73,14 @@ export default function Home() {
     if (savedModel) setModel(savedModel);
     if (savedBaseUrl) setBaseUrl(savedBaseUrl);
 
-    // 设置保存到 localStorage 的效果
     const saveToLocalStorage = () => {
       localStorage.setItem('apiKey', apiKey);
       localStorage.setItem('model', model);
       localStorage.setItem('baseUrl', baseUrl);
     };
 
-    // 添加事件监听器
     window.addEventListener('beforeunload', saveToLocalStorage);
 
-    // 清理函数
     return () => {
       window.removeEventListener('beforeunload', saveToLocalStorage);
     };
@@ -156,7 +150,7 @@ export default function Home() {
             type="text"
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            placeholder="输入模型名称（如 gpt-4o）"
+            placeholder="输入模型名称"
             className={styles.input}
             required
           />
@@ -186,7 +180,6 @@ export default function Home() {
         </form>
 
         {isLoading && <p className={styles.loading}>正在生成响应...</p>}
-
         {error && <p className={styles.error}>{error}</p>}
 
         {response.map((step, index) => (
