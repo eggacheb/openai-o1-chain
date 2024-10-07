@@ -63,6 +63,24 @@ export default function Home() {
   const [error, setError] = useState(null);
   const eventSourceRef = useRef(null);
 
+  // 在组件加载时从 localStorage 读取保存的值
+  useEffect(() => {
+    const savedApiKey = localStorage.getItem('apiKey');
+    const savedModel = localStorage.getItem('model');
+    const savedBaseUrl = localStorage.getItem('baseUrl');
+
+    if (savedApiKey) setApiKey(savedApiKey);
+    if (savedModel) setModel(savedModel);
+    if (savedBaseUrl) setBaseUrl(savedBaseUrl);
+  }, []);
+
+  // 当 apiKey, model, 或 baseUrl 改变时，保存到 localStorage
+  useEffect(() => {
+    localStorage.setItem('apiKey', apiKey);
+    localStorage.setItem('model', model);
+    localStorage.setItem('baseUrl', baseUrl);
+  }, [apiKey, model, baseUrl]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
