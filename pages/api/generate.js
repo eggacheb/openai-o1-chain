@@ -135,7 +135,7 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shoul
 
       messages.push({ role: "assistant", content: JSON.stringify(stepData) });
 
-      if (stepData.next_action === "end" || stepData.next_action !== "continue" || stepCount >= 15) {
+      if (stepData.next_action === "end" || stepCount >= 15) {
         continueReasoning = false;
       } else {
         if (stepCount < 14) {
@@ -153,6 +153,7 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shoul
 
   sendEvent('done', {});
 }
+
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
