@@ -64,7 +64,7 @@ export default function Home() {
   const eventSourceRef = useRef(null);
 
   useEffect(() => {
-    // 从 localStorage 读取保存的值
+    // 从 localStorage 读取保存的值，只在第一次加载时填充
     const savedApiKey = localStorage.getItem('apiKey');
     const savedModel = localStorage.getItem('model');
     const savedBaseUrl = localStorage.getItem('baseUrl');
@@ -72,7 +72,9 @@ export default function Home() {
     if (savedApiKey) setApiKey(savedApiKey);
     if (savedModel) setModel(savedModel);
     if (savedBaseUrl) setBaseUrl(savedBaseUrl);
+  }, []);  // 空依赖项，确保仅在页面加载时运行一次
 
+  useEffect(() => {
     const saveToLocalStorage = () => {
       localStorage.setItem('apiKey', apiKey);
       localStorage.setItem('model', model);
@@ -141,7 +143,7 @@ export default function Home() {
           <input
             type="password"
             value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
+            onChange={(e) => setApiKey(e.target.value)}  // 允许用户更新 apiKey
             placeholder="输入您的 OpenAI API 密钥"
             className={styles.input}
             required
@@ -149,15 +151,15 @@ export default function Home() {
           <input
             type="text"
             value={model}
-            onChange={(e) => setModel(e.target.value)}
-            placeholder="输入模型名称"
+            onChange={(e) => setModel(e.target.value)}  // 允许用户更新模型
+            placeholder="输入模型名称（如 gpt-4）"
             className={styles.input}
             required
           />
           <input
             type="text"
             value={baseUrl}
-            onChange={(e) => setBaseUrl(e.target.value)}
+            onChange={(e) => setBaseUrl(e.target.value)}  // 允许用户更新 base URL
             placeholder="输入 API 基础 URL"
             className={styles.input}
             required
