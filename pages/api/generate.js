@@ -38,6 +38,7 @@ const parseStepContent = (stepContent) => {
 
     let parsedContent;
     try {
+      console.log('原始步骤内容:', stepContent);  // log raw step content
       parsedContent = JSON.parse(stepContent);
     } catch (e) {
       const jsonMatch = stepContent.match(/\{[\s\S]*\}/);
@@ -49,6 +50,7 @@ const parseStepContent = (stepContent) => {
     }
 
     if (parsedContent.title && parsedContent.content && parsedContent.next_action) {
+      console.log('解析后的步骤内容:', parsedContent);  // log parsed content
       return parsedContent;
     } else {
       throw new Error('解析后的对象不包含预期的键');
@@ -79,26 +81,25 @@ async function processStep(apiKey, model, baseUrl, messages, retryCount = 0) {
       }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || `API请求失败: ${response.status}`);
-    }
-
     const data = await response.json();
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('API响应格式不正确');
+    console.log('原始响应数据:', data);  // log raw response
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || `API请求失败: ${response.status}`);
     }
 
     const rawStepContent = data.choices[0].message.content;
-    
+
     try {
       const parsedContent = JSON.parse(rawStepContent);
       if (parsedContent.title && parsedContent.content && parsedContent.next_action) {
+        console.log('成功解析响应:', parsedContent);  // log parsed JSON
         return parsedContent;
       } else {
         throw new Error('解析后的对象不包含预期的键');
       }
     } catch (error) {
+      console.error('解析失败的原始响应:', rawStepContent);  // log original failed data
       if (retryCount < 3) {
         console.log(`解析失败，重试第 ${retryCount + 1} 次`);
         return processStep(apiKey, model, baseUrl, messages, retryCount + 1);
