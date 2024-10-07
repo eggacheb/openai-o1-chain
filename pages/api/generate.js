@@ -36,6 +36,9 @@ const parseStepContent = (stepContent) => {
       };
     }
 
+    // 移除 markdown 格式的代码块标记
+    stepContent = stepContent.replace(/```json/g, '').replace(/```/g, '').trim();
+
     let parsedContent;
     try {
       console.log('原始步骤内容:', stepContent);  // log raw step content
