@@ -36,15 +36,16 @@ const parseStepContent = (stepContent) => {
       };
     }
 
-    // 移除 markdown 格式的代码块标记
-    stepContent = stepContent.replace(/```json/g, '').replace(/```/g, '').trim();
+    // 移除 markdown 代码块标记 ```json 和 ```，确保数据可以被解析
+    const cleanedContent = stepContent.replace(/```json/g, '').replace(/```/g, '');
+    console.log('清理后的步骤内容:', cleanedContent);  // log cleaned content
 
     let parsedContent;
     try {
-      console.log('原始步骤内容:', stepContent);  // log raw step content
-      parsedContent = JSON.parse(stepContent);
+      console.log('原始步骤内容:', stepContent);  // log raw step content before cleaning
+      parsedContent = JSON.parse(cleanedContent);
     } catch (e) {
-      const jsonMatch = stepContent.match(/\{[\s\S]*\}/);
+      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         parsedContent = JSON.parse(jsonMatch[0]);
       } else {
@@ -60,6 +61,7 @@ const parseStepContent = (stepContent) => {
     }
   } catch (error) {
     console.error('JSON解析失败:', error);
+    console.log('解析失败的原始响应:', stepContent);  // Log raw response on failure
     return {
       title: "解析错误",
       content: String(stepContent),
@@ -91,7 +93,12 @@ async function processStep(apiKey, model, baseUrl, messages, retryCount = 0) {
       throw new Error(data.error?.message || `API请求失败: ${response.status}`);
     }
 
-    const rawStepContent = data.choices[0].message.content;
+    // 获取响应中的步骤内容
+    let rawStepContent = data.choices[0].message.content;
+
+    // 移除 markdown 代码块标记
+    rawStepContent = rawStepContent.replace(/```json/g, '').replace(/```/g, '');
+    console.log('清理后的步骤内容:', rawStepContent);  // log cleaned content
 
     try {
       const parsedContent = JSON.parse(rawStepContent);
@@ -157,7 +164,6 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shoul
 
   sendEvent('done', {});
 }
-
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
