@@ -36,12 +36,10 @@ const parseStepContent = (stepContent) => {
       };
     }
 
-    // 尝试直接解析整个字符串
     let parsedContent;
     try {
       parsedContent = JSON.parse(stepContent);
     } catch (e) {
-      // 如果直接解析失败，尝试提取 JSON 部分
       const jsonMatch = stepContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         parsedContent = JSON.parse(jsonMatch[0]);
@@ -50,7 +48,6 @@ const parseStepContent = (stepContent) => {
       }
     }
 
-    // 检查解析后的内容是否包含预期的键
     if (parsedContent.title && parsedContent.content && parsedContent.next_action) {
       return parsedContent;
     } else {
@@ -104,7 +101,7 @@ async function processStep(apiKey, model, baseUrl, messages) {
   }
 }
 
-async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent) {
+async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shouldStop) {
   let messages = [
     { role: "system", content: systemPrompt },
     { role: "user", content: query }
@@ -113,17 +110,15 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent) {
   let stepCount = 0;
   let continueReasoning = true;
 
-  while (continueReasoning && stepCount < 15) {
+  while (continueReasoning && stepCount < 15 && !shouldStop()) {
     stepCount++;
 
     const stepData = await processStep(apiKey, model, baseUrl, messages);
 
-    // 发送事件
     sendEvent('step', stepData);
 
     messages.push({ role: "assistant", content: JSON.stringify(stepData) });
 
-    // 检查 next_action，如果不是 'continue'，则终止循环
     if (stepData.next_action === "end" || stepData.next_action !== "continue" || stepCount >= 15) {
       continueReasoning = false;
     } else {
@@ -159,8 +154,14 @@ export default async function handler(req, res) {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
 
+  // 添加这个标志来检查客户端是否断开连接
+  let clientDisconnected = false;
+  req.on('close', () => {
+    clientDisconnected = true;
+  });
+
   try {
-    await runReasoningChain(query, apiKey, model, baseUrl, sendEvent);
+    await runReasoningChain(query, apiKey, model, baseUrl, sendEvent, () => clientDisconnected);
   } catch (error) {
     console.error('运行推理链时发生错误:', error);
     sendEvent('error', { message: '生成响应失败', error: error.message });
