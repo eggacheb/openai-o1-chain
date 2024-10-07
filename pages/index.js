@@ -14,6 +14,7 @@ const parseResponse = (data) => {
       try {
         parsedData = JSON.parse(parsedData);
       } catch (e) {
+        console.log("原始响应:", parsedData);
         return [{
           title: "响应",
           content: parsedData,
@@ -24,11 +25,13 @@ const parseResponse = (data) => {
 
     if (typeof parsedData === 'object') {
       if ('title' in parsedData && 'content' in parsedData) {
+        console.log("解析后的响应:", parsedData);
         return [parsedData];
       }
     }
 
     if (Array.isArray(parsedData)) {
+      console.log("解析后的响应数组:", parsedData);
       return parsedData.map((item, index) => ({
         title: item.title || `步骤 ${index + 1}`,
         content: item.content || JSON.stringify(item),
@@ -76,6 +79,9 @@ export default function Home() {
 
   useEffect(() => {
     const saveToLocalStorage = () => {
+      console.log("保存 key 到 localStorage:", apiKey);
+      console.log("保存模型到 localStorage:", model);
+      console.log("保存 baseUrl 到 localStorage:", baseUrl);
       localStorage.setItem('apiKey', apiKey);
       localStorage.setItem('model', model);
       localStorage.setItem('baseUrl', baseUrl);
@@ -95,10 +101,16 @@ export default function Home() {
     setTotalTime(null);
     setError(null);
 
+    console.log("发送请求 - API Key:", apiKey);
+    console.log("发送请求 - 模型:", model);
+    console.log("发送请求 - 基础URL:", baseUrl);
+    console.log("发送请求 - 查询内容:", query);
+
     eventSourceRef.current = new EventSource(`/api/generate?query=${encodeURIComponent(query)}&apiKey=${encodeURIComponent(apiKey)}&model=${encodeURIComponent(model)}&baseUrl=${encodeURIComponent(baseUrl.replace(/\/$/, ''))}`);
 
     eventSourceRef.current.addEventListener('step', (event) => {
       try {
+        console.log("收到步骤响应:", event.data);
         const parsedStep = parseResponse(event.data)[0];
         setResponse(prevResponse => [...prevResponse, parsedStep]);
       } catch (error) {
@@ -109,12 +121,14 @@ export default function Home() {
 
     eventSourceRef.current.addEventListener('error', (event) => {
       const data = JSON.parse(event.data);
+      console.error("生成响应时发生错误:", data);
       setError(data.message || '生成响应时发生错误');
       setIsLoading(false);
       eventSourceRef.current.close();
     });
 
     eventSourceRef.current.addEventListener('done', () => {
+      console.log("生成响应已完成");
       setIsLoading(false);
       eventSourceRef.current.close();
     });
@@ -122,6 +136,7 @@ export default function Home() {
 
   const handleStop = () => {
     if (eventSourceRef.current) {
+      console.log("生成已停止");
       eventSourceRef.current.close();
       setIsLoading(false);
     }
