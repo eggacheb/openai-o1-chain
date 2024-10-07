@@ -53,8 +53,8 @@ const parseResponse = (data) => {
 };
 
 
+
 export default function Home() {
-  const [isClient, setIsClient] = useState(false);
   const [query, setQuery] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('gpt-4o');
@@ -65,14 +65,9 @@ export default function Home() {
   const [error, setError] = useState(null);
   const eventSourceRef = useRef(null);
 
+  // 使用 useEffect 来确保这些操作只在客户端执行
   useEffect(() => {
-    // Check if we are on the client-side (browser)
-    setIsClient(typeof window !== 'undefined');
-  }, []);
-
-  useEffect(() => {
-    if (!isClient) return;
-
+    // 从 localStorage 读取保存的值
     const savedApiKey = localStorage.getItem('apiKey');
     const savedModel = localStorage.getItem('model');
     const savedBaseUrl = localStorage.getItem('baseUrl');
@@ -80,7 +75,22 @@ export default function Home() {
     if (savedApiKey) setApiKey(savedApiKey);
     if (savedModel) setModel(savedModel);
     if (savedBaseUrl) setBaseUrl(savedBaseUrl);
-  }, [isClient]);
+
+    // 设置保存到 localStorage 的效果
+    const saveToLocalStorage = () => {
+      localStorage.setItem('apiKey', apiKey);
+      localStorage.setItem('model', model);
+      localStorage.setItem('baseUrl', baseUrl);
+    };
+
+    // 添加事件监听器
+    window.addEventListener('beforeunload', saveToLocalStorage);
+
+    // 清理函数
+    return () => {
+      window.removeEventListener('beforeunload', saveToLocalStorage);
+    };
+  }, [apiKey, model, baseUrl]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
