@@ -6,12 +6,10 @@ const parseResponse = (data) => {
   try {
     let parsedData = typeof data === 'string' ? JSON.parse(data) : data;
 
-    // 检查返回数据中的 choices
     if (parsedData.choices && Array.isArray(parsedData.choices)) {
       parsedData = parsedData.choices[0].message.content;
     }
 
-    // 如果是字符串，尝试再次解析
     if (typeof parsedData === 'string') {
       try {
         parsedData = JSON.parse(parsedData);
@@ -25,7 +23,6 @@ const parseResponse = (data) => {
       }
     }
 
-    // 检查是否是对象，且具有 title 和 content
     if (typeof parsedData === 'object') {
       if ('title' in parsedData && 'content' in parsedData) {
         console.log("解析后的响应:", parsedData);
@@ -33,7 +30,6 @@ const parseResponse = (data) => {
       }
     }
 
-    // 如果是数组，将其逐步解析
     if (Array.isArray(parsedData)) {
       console.log("解析后的响应数组:", parsedData);
       return parsedData.map((item, index) => ({
@@ -50,7 +46,6 @@ const parseResponse = (data) => {
       next_action: "final_answer"
     }];
   } catch (error) {
-    // 捕获解析时的异常并记录原始数据
     console.error('解析响应时出错:', error);
     console.log("解析失败的原始响应数据:", data);
     return [{
