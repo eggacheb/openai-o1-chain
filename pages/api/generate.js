@@ -63,7 +63,7 @@ const parseStepContent = (stepContent) => {
   }
 };
 
-async function processStep(apiKey, model, baseUrl, messages) {
+async function processStep(apiKey, model, baseUrl, messages, retryCount = 0) {
   try {
     const response = await fetch(`${baseUrl.replace(/\/$/, '')}/v1/chat/completions`, {
       method: 'POST',
@@ -90,7 +90,22 @@ async function processStep(apiKey, model, baseUrl, messages) {
     }
 
     const rawStepContent = data.choices[0].message.content;
-    return parseStepContent(rawStepContent);
+    
+    try {
+      const parsedContent = JSON.parse(rawStepContent);
+      if (parsedContent.title && parsedContent.content && parsedContent.next_action) {
+        return parsedContent;
+      } else {
+        throw new Error('解析后的对象不包含预期的键');
+      }
+    } catch (error) {
+      if (retryCount < 3) {
+        console.log(`解析失败，重试第 ${retryCount + 1} 次`);
+        return processStep(apiKey, model, baseUrl, messages, retryCount + 1);
+      } else {
+        throw new Error('JSON解析失败，已达到最大重试次数');
+      }
+    }
   } catch (error) {
     console.error('处理步骤时发生错误:', error);
     return {
@@ -113,20 +128,26 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shoul
   while (continueReasoning && stepCount < 15 && !shouldStop()) {
     stepCount++;
 
-    const stepData = await processStep(apiKey, model, baseUrl, messages);
+    try {
+      const stepData = await processStep(apiKey, model, baseUrl, messages);
 
-    sendEvent('step', stepData);
+      sendEvent('step', stepData);
 
-    messages.push({ role: "assistant", content: JSON.stringify(stepData) });
+      messages.push({ role: "assistant", content: JSON.stringify(stepData) });
 
-    if (stepData.next_action === "end" || stepData.next_action !== "continue" || stepCount >= 15) {
-      continueReasoning = false;
-    } else {
-      if (stepCount < 14) {
-        messages.push({ role: "user", content: "请继续分析。" });
+      if (stepData.next_action === "end" || stepData.next_action !== "continue" || stepCount >= 15) {
+        continueReasoning = false;
       } else {
-        messages.push({ role: "user", content: "请总结并给出最终结论。" });
+        if (stepCount < 14) {
+          messages.push({ role: "user", content: "请继续分析。" });
+        } else {
+          messages.push({ role: "user", content: "请总结并给出最终结论。" });
+        }
       }
+    } catch (error) {
+      console.error('处理步骤时发生错误:', error);
+      sendEvent('error', { message: '处理步骤失败', error: error.message });
+      continueReasoning = false;
     }
   }
 
