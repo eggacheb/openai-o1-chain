@@ -106,20 +106,26 @@ export default function Home() {
     console.log("发送请求 - 模型:", model);
     console.log("发送请求 - 基础URL:", baseUrl);
     console.log("发送请求 - 查询内容:", query);
+  // 添加一个状态来跟踪当前步骤
+  let currentStep = 0;
 
-    eventSourceRef.current = new EventSource(`/api/generate?query=${encodeURIComponent(query)}&apiKey=${encodeURIComponent(apiKey)}&model=${encodeURIComponent(model)}&baseUrl=${encodeURIComponent(baseUrl.replace(/\/$/, ''))}`);
+  eventSourceRef.current = new EventSource(`/api/generate?query=${encodeURIComponent(query)}&apiKey=${encodeURIComponent(apiKey)}&model=${encodeURIComponent(model)}&baseUrl=${encodeURIComponent(baseUrl.replace(/\/$/, ''))}&stepCount=${currentStep}`);
 
-    eventSourceRef.current.addEventListener('step', (event) => {
-      try {
-        console.log("收到步骤响应:", event.data);
-        const parsedStep = parseResponse(event.data)[0];
-        setResponse(prevResponse => [...prevResponse, parsedStep]);
-      } catch (error) {
-        console.error('处理步骤时出错:', error);
-        setError(`处理响应时出错: ${error.message}`);
-      }
-    });
-
+  eventSourceRef.current.addEventListener('step', (event) => {
+    try {
+      console.log("收到步骤响应:", event.data);
+      const parsedStep = parseResponse(event.data)[0];
+      setResponse(prevResponse => [...prevResponse, parsedStep]);
+      // 更新当前步骤
+      currentStep++;
+      // 在URL中更新stepCount
+      eventSourceRef.current.url = eventSourceRef.current.url.replace(/stepCount=\d+/, `stepCount=${currentStep}`);
+    } catch (error) {
+      console.error('处理步骤时出错:', error);
+      setError(`处理响应时出错: ${error.message}`);
+    }
+  });
+    
     eventSourceRef.current.addEventListener('error', (event) => {
       const data = JSON.parse(event.data);
       console.error("生成响应时发生错误:", data);
