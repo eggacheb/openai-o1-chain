@@ -142,14 +142,19 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shoul
   while (continueReasoning && stepCount < 15 && !shouldStop()) {
     stepCount++;
 
+    console.log(`开始处理第 ${stepCount} 步`);
+    
     try {
       const stepData = await processStep(apiKey, model, baseUrl, messages);
+
+      console.log(`第 ${stepCount} 步的响应:`, stepData);
 
       sendEvent('step', stepData);
 
       messages.push({ role: "assistant", content: JSON.stringify(stepData) });
 
       if (stepData.next_action === "end" || stepCount >= 15) {
+        console.log(`结束条件: next_action=${stepData.next_action}, stepCount=${stepCount}`);
         continueReasoning = false;
       } else {
         if (stepCount < 14) {
@@ -163,10 +168,14 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shoul
       sendEvent('error', { message: '处理步骤失败', error: error.message });
       continueReasoning = false;
     }
+
+    console.log(`循环状态: continueReasoning=${continueReasoning}, stepCount=${stepCount}, shouldStop=${shouldStop()}`);
   }
 
+  console.log('推理链已完成');
   sendEvent('done', {});
 }
+
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
