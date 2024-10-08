@@ -130,32 +130,35 @@ async function processStep(apiKey, model, baseUrl, messages, retryCount = 0) {
   }
 }
 
-async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shouldStop) {
-  let messages = [
-    { role: "system", content: systemPrompt },
-    { role: "user", content: query }
-  ];
+async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shouldStop, messages = [], stepCount = 0) {
+  // Initialize state if not provided
+  if (messages.length === 0) {
+    messages = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: query }
+    ];
+  }
 
-  let stepCount = 0;
   let continueReasoning = true;
 
   while (continueReasoning && stepCount < 15 && !shouldStop()) {
-    stepCount++;
-
-    console.log(`开始处理第 ${stepCount} 步`);
+    console.log(`开始处理步骤, 当前 stepCount: ${stepCount}`);
 
     try {
       const stepData = await processStep(apiKey, model, baseUrl, messages);
 
-      console.log(`第 ${stepCount} 步的响应:`, stepData);
+      console.log(`步骤响应成功:`, stepData);
       console.log(`当前消息历史:`, JSON.stringify(messages));
 
       sendEvent('step', stepData);
 
       messages.push({ role: "assistant", content: JSON.stringify(stepData) });
 
+      // Increment stepCount only after successfully processing the response
+      stepCount++;
+
       if (stepData.next_action === "end" || stepCount >= 15) {
-        console.log(`结束条件: next_action=${stepData.next_action}, stepCount=${stepCount}`);
+        console.log(`结束条件触发: next_action=${stepData.next_action}, stepCount=${stepCount}`);
         continueReasoning = false;
       } else {
         if (stepCount < 14) {
@@ -173,9 +176,11 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shoul
     console.log(`循环状态: continueReasoning=${continueReasoning}, stepCount=${stepCount}, shouldStop=${shouldStop()}`);
   }
 
-  console.log('推理链已完成');
+  // Persist state across requests (could be to a database or client-side)
+  sendEvent('state', { messages, stepCount });
   sendEvent('done', {});
 }
+
 
 
 
