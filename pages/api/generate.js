@@ -168,7 +168,8 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shoul
           messages.push({ role: "user", content: "请总结并给出最终结论。" });
         }
       }
-    } catch (error) {'处理步骤时发生错误:', error);
+    } catch (error) {
+      console.error('处理步骤时发生错误:', error);
       sendEvent('error', { message: '处理步骤失败', error: error.message });
       continueReasoning = false;
     }
