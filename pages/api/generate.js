@@ -143,11 +143,12 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shoul
     stepCount++;
 
     console.log(`开始处理第 ${stepCount} 步`);
-    
+
     try {
       const stepData = await processStep(apiKey, model, baseUrl, messages);
 
       console.log(`第 ${stepCount} 步的响应:`, stepData);
+      console.log(`当前消息历史:`, JSON.stringify(messages));
 
       sendEvent('step', stepData);
 
@@ -175,6 +176,7 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shoul
   console.log('推理链已完成');
   sendEvent('done', {});
 }
+
 
 
 export default async function handler(req, res) {
