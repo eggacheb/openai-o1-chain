@@ -97,7 +97,10 @@ async function processStep(apiKey, model, baseUrl, messages, retryCount = 0) {
     let rawStepContent = data.choices[0].message.content;
 
     // 移除 ```json 和 ```json\n，移除反斜杠和换行符
-    rawStepContent = rawStepContent.replace(/```json\n?|```/g, '').replace(/\\n/g, '').replace(/\\"/g, '"');
+    rawStepContent = rawStepContent.replace(/```json\n?|```/g, '')
+                                   .replace(/\\n/g, '')
+                                   .replace(/\\"/g, '"')
+                                   .replace(/\n/g, ' ');  // 移除普通换行符并替换为一个空格
     console.log('清理后的步骤内容:', rawStepContent);  // log cleaned content
 
     try {
