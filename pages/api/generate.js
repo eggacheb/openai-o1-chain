@@ -150,11 +150,12 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shoul
       console.log(`步骤响应成功:`, stepData);
       console.log(`当前消息历史:`, JSON.stringify(messages));
 
-      sendEvent('step', stepData);
+      // 在发送事件时包含当前步骤数
+      sendEvent('step', { ...stepData, stepNumber: stepCount + 1 });
 
       messages.push({ role: "assistant", content: JSON.stringify(stepData) });
 
-      // Increment stepCount only after successfully processing the response
+      // 增加步骤计数
       stepCount++;
 
       if (stepData.next_action === "end" || stepCount >= 15) {
@@ -167,15 +168,13 @@ async function runReasoningChain(query, apiKey, model, baseUrl, sendEvent, shoul
           messages.push({ role: "user", content: "请总结并给出最终结论。" });
         }
       }
-    } catch (error) {
-      console.error('处理步骤时发生错误:', error);
+    } catch (error) {'处理步骤时发生错误:', error);
       sendEvent('error', { message: '处理步骤失败', error: error.message });
       continueReasoning = false;
     }
 
-    console.log(`循环状态: continueReasoning=${continueReasoning}, stepCount=${stepCount}, shouldStop=${shouldStop()}`);
+     console.log(`循环状态: continueReasoning=${continueReasoning}, stepCount=${stepCount}, shouldStop=${shouldStop()}`);
   }
-
   // Persist state across requests (could be to a database or client-side)
   sendEvent('state', { messages, stepCount });
   sendEvent('done', {});
@@ -189,11 +188,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: '方法不允许' });
   }
 
-  const { query, apiKey, model, baseUrl } = req.query;
+  const { query, apiKey, model, baseUrl, stepCount } = req.query;
 
   if (!query || !apiKey || !model || !baseUrl) {
     return res.status(400).json({ message: '缺少必要参数' });
   }
+
+  // 将stepCount转换为数字，如果没有提供则默认为0
+  const initialStepCount = stepCount ? parseInt(stepCount, 10) : 0;
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -212,7 +214,7 @@ export default async function handler(req, res) {
   });
 
   try {
-    await runReasoningChain(query, apiKey, model, baseUrl, sendEvent, () => clientDisconnected);
+    await runReasoningChain(query, apiKey, model, baseUrl, sendEvent, () => clientDisconnected, [], initialStepCount);
   } catch (error) {
     console.error('运行推理链时发生错误:', error);
     sendEvent('error', { message: '生成响应失败', error: error.message });
