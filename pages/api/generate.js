@@ -96,8 +96,8 @@ async function processStep(apiKey, model, baseUrl, messages, retryCount = 0) {
     // 获取响应中的步骤内容
     let rawStepContent = data.choices[0].message.content;
 
-    // 移除 markdown 代码块标记
-    rawStepContent = rawStepContent.replace(/```json/g, '').replace(/```/g, '');
+    // 移除 ```json 和 ```json\n，移除反斜杠和换行符
+    rawStepContent = rawStepContent.replace(/```json\n?|```/g, '').replace(/\\n/g, '').replace(/\\"/g, '"');
     console.log('清理后的步骤内容:', rawStepContent);  // log cleaned content
 
     try {
