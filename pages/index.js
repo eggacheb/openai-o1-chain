@@ -106,28 +106,28 @@ const handleSubmit = async (e) => {
   console.log("发送请求 - 模型:", model);
   console.log("发送请求 - 基础URL:", baseUrl);
   console.log("发送请求 - 查询内容:", query);
-  
+
   let currentStep = 0;
 
-  const createNewEventSource = (stepCount) => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close(); // Close the old EventSource
-    }
-    const newUrl = `/api/generate?query=${encodeURIComponent(query)}&apiKey=${encodeURIComponent(apiKey)}&model=${encodeURIComponent(model)}&baseUrl=${encodeURIComponent(baseUrl.replace(/\/$/, ''))}&stepCount=${stepCount}`;
-    eventSourceRef.current = new EventSource(newUrl); // Create new EventSource
-  };
+  // Close any existing EventSource before starting a new one
+  if (eventSourceRef.current) {
+    eventSourceRef.current.close();
+  }
 
-  createNewEventSource(currentStep);
+  const eventSourceUrl = `/api/generate?query=${encodeURIComponent(query)}&apiKey=${encodeURIComponent(apiKey)}&model=${encodeURIComponent(model)}&baseUrl=${encodeURIComponent(baseUrl.replace(/\/$/, ''))}&stepCount=${currentStep}`;
+  
+  eventSourceRef.current = new EventSource(eventSourceUrl);
 
   eventSourceRef.current.addEventListener('step', (event) => {
     try {
       console.log("收到步骤响应:", event.data);
       const parsedStep = parseResponse(event.data)[0];
+      
+      // Add the new step to the response state to trigger re-render
       setResponse(prevResponse => [...prevResponse, parsedStep]);
 
-      // Increment current step and recreate the EventSource with updated stepCount
+      // Increment the step count
       currentStep++;
-      createNewEventSource(currentStep);
     } catch (error) {
       console.error('处理步骤时出错:', error);
       setError(`处理响应时出错: ${error.message}`);
@@ -148,6 +148,7 @@ const handleSubmit = async (e) => {
     eventSourceRef.current.close();
   });
 };
+
 
 
 
